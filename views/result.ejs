@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Result</title></head>
+  <body>
+  <%- include('partials/navbar') %>
+    <h1>Result</h1>
+    <button id="copy_json" class="btn">Copy JSON</button>
+    <pre id="result_pre"><%= JSON.stringify(data, null, 2) %></pre>
+    <script src="/ui.js"></script>
+    <script src="/navbar.js"></script>
+    <script>
+      document.getElementById('copy_json').addEventListener('click', ()=>{
+        const t = document.getElementById('result_pre').innerText;
+        copyToClipboard(t);
+        showToast('Copied result');
+      });
+    </script>
+  </body>
+</html>

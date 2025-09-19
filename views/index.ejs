@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hydra Playground</title>
+  </head>
+  <body>
+  <%- include('partials/navbar') %>
+    <h1>Hydra Playground</h1>
+    <ul>
+      <li><a href="/demo/well-known">/.well-known/openid-configuration</a></li>
+      <li><a href="/demo/jwks">/.well-known/jwks.json</a></li>
+    </ul>
+    <h2>Flows</h2>
+    <p>Use the authorize endpoint of your client to start flows. Example authorize URL:</p>
+    <pre id="example"></pre>
+    <script>
+      const pub = "<%= env.HYDRA_PUBLIC_URL || 'http://localhost:4444' %>";
+      const client = encodeURIComponent('<your-client-id>');
+      const redirect = encodeURIComponent('http://localhost:3000/result');
+      document.getElementById('example').innerText = pub + '/oauth2/auth?response_type=code&scope=openid%20offline&client_id=' + client + '&redirect_uri=' + redirect + '&state=abc&nonce=nonce123';
+    </script>
+    <p><a href="/flows">Open Flow Runner (demo UI)</a></p>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Users</title>
+    <link rel="stylesheet" href="/flows.css" />
+  </head>
+  <body>
+  <%- include('partials/navbar') %>
+    <h1>Users</h1>
+    <section>
+      <h2>Create User</h2>
+      <form id="create_user">
+        <label>Username: <input name="username" value="demo-user"/></label>
+        <label>Password: <input name="password" value="password"/></label>
+        <button class="btn primary" type="submit">Create</button>
+      </form>
+    </section>
+    <section>
+      <h2>Existing Users</h2>
+      <button id="reload_users" class="btn">Reload</button>
+      <pre id="users_output" class="output"></pre>
+    </section>
+    <script src="/ui.js"></script>
+    <script src="/navbar.js"></script>
+    <script src="/users.js"></script>
+  </body>
+</html>

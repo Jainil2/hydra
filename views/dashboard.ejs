@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Dashboard</title></head>
+  <body>
+  <%- include('partials/navbar') %>
+    <h1>Dashboard</h1>
+    <div class="card">
+      <h2>User</h2>
+      <pre id="user_pre"><%= JSON.stringify(user || {}, null, 2) %></pre>
+      <button id="copy_user" class="btn">Copy Claims</button>
+      <form id="logout_form" method="post" action="/auth/logout" style="display:inline-block">
+        <input type="hidden" name="challenge" value="" />
+        <button type="submit" class="btn danger">Logout</button>
+      </form>
+    </div>
+  <script src="/ui.js"></script>
+  <script src="/navbar.js"></script>
+    <script>
+      document.getElementById('copy_user').addEventListener('click', ()=>{
+        copyToClipboard(document.getElementById('user_pre').innerText);
+        showToast('User claims copied');
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+
+body { font-family: Inter, Arial, sans-serif; margin: 20px; background: #fafafa; }
+.container { display: grid; grid-template-columns: 1fr; gap: 12px; max-width: 1000px; }
+section { border: 1px solid #e6e6e6; padding: 14px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(20,20,20,0.03); }
+.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+label { display:block; min-width:160px; }
+input { padding:6px 8px; border:1px solid #ddd; border-radius:6px; }
+.wide { width:60%; }
+.btn { padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
+.btn.primary { background:linear-gradient(180deg,#2d9cdb,#1b7fbf); color:#fff; border:none; }
+.output { background:#f6f8fa; padding:10px; border-radius:6px; max-height:240px; overflow:auto; }
+.toast { position:fixed; bottom:24px; right:24px; background:#333; color:#fff; padding:8px 12px; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.12); }
+
+/* Navbar */
+.site-navbar { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#fff; border-bottom:1px solid #eee; margin-bottom:18px; }
+.site-navbar .brand { font-weight:700; margin-right:16px; }
+.site-navbar nav a { margin-right:10px; color:#333; text-decoration:none; }
+.site-navbar .nav-right { display:flex; align-items:center; gap:10px; }
+.btn.small { padding:6px 8px; font-size:13px; }
+

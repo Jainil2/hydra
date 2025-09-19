@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Auth Callback</title></head>
+  <body>
+    <h1>Authorization Callback</h1>
+    <p>Code: <code id="auth_code"><%= code %></code> <button id="copy_code" class="btn">Copy</button></p>
+    <p>State: <code><%= state %></code></p>
+    <form method="post" action="/oauth/exchange">
+      <input type="hidden" name="grant_type" value="authorization_code" />
+      <label>Code: <input name="code" value="<%= code %>" /></label>
+      <label>Redirect URI: <input name="redirect_uri" value="http://localhost:3000/callback" /></label>
+      <label>Client ID: <input name="client_id" value="demo-client" /></label>
+      <label>Client Secret: <input name="client_secret" value="secret" /></label>
+      <label>Code Verifier: <input name="code_verifier" /></label>
+      <button type="submit" class="btn primary">Exchange Code</button>
+    </form>
+    <body>
+      <h1>OAuth Callback</h1>
+      <p>Authorization code:</p>
+      <pre id="code"><%= code %></pre>
+      <button id="copy_code" class="btn">Copy Code</button>
+      <form method="post" action="/oauth/exchange">
+        <input type="hidden" name="code" value="<%= code %>" />
+        <label for="client">Client ID</label>
+        <input name="client_id" id="client" />
+        <label for="secret">Client Secret</label>
+        <input name="client_secret" id="secret" />
+        <button type="submit" class="btn primary">Exchange</button>
+      </form>
+      <script src="/ui.js"></script>
+      <script>
+        document.getElementById('copy_code').addEventListener('click', ()=>{
+          copyToClipboard(document.getElementById('code').innerText);
+          showToast('Code copied');
+        });
+      </script>
+    </body>
