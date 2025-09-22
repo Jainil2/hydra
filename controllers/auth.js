@@ -33,14 +33,19 @@ router.post('/seed-user', async (req, res) => {
     const id = await userService.create(username || 'demo-user', password || 'password');
     res.json({ id });
   } catch (err) {
-    res.status(500).send(err.toString());
+    console.error('seed-user error:', err);
+    res.status(500).json({ error: err.toString() });
   }
 });
 
 router.get('/users', async (req, res) => {
   try {
     const users = await require('../services/db')('users').select('id', 'username', 'profile');
-    res.json(users.map(u => ({ id: u.id, username: u.username, profile: u.profile ? JSON.parse(u.profile) : {} })));
+    res.json(users.map(u => ({
+      id: u.id,
+      username: u.username,
+      profile: (u.profile && typeof u.profile === 'string') ? JSON.parse(u.profile) : (u.profile || {})
+    })));
   } catch (err) {
     res.status(500).send(err.toString());
   }
@@ -60,10 +65,48 @@ router.get('/consent', async (req, res) => {
 router.post('/consent', async (req, res) => {
   const { challenge, grant_scope } = req.body;
   try {
-    const body = { grant_scope: Array.isArray(grant_scope) ? grant_scope : (grant_scope ? [grant_scope] : []), grant_access_token_audience: [], remember: false, subject: 'demo-user' };
-    const { data } = await hydra.acceptConsentRequest(challenge, body);
-    return res.redirect(data.redirect_to);
+    const scopes = Array.isArray(grant_scope) ? grant_scope : (grant_scope ? [grant_scope] : []);
+    const body = {
+      grant_scope: scopes,
+      // audience may be empty; Hydra expects grant_access_token_audience when present
+      grant_access_token_audience: [],
+      remember: false,
+      // optionally provide session data for id_token/access_token; leave empty here
+      session: {}
+    };
+    try {
+      const { data } = await hydra.acceptConsentRequest(challenge, body);
+      // Hydra normally returns { redirect_to: 'https://client/cb?code=...&state=...' }
+      if (data && data.redirect_to) {
+        return res.redirect(data.redirect_to);
+      }
+      // Some Hydra responses may return the code/scope/state directly.
+      // If so, fetch the consent request to obtain the client's redirect URI
+      if (data && data.code) {
+        try {
+          const consentResp = await hydra.getConsentRequest(challenge);
+          const client = consentResp && consentResp.data && consentResp.data.client;
+          const redirectUri = client && client.redirect_uris && client.redirect_uris[0];
+          if (redirectUri) {
+            const params = new URLSearchParams({ code: data.code, state: data.state, scope: data.scope });
+            return res.redirect(redirectUri + (redirectUri.includes('?') ? '&' : '?') + params.toString());
+          }
+        } catch (e) {
+          console.error('Failed to fetch consent request to reconstruct redirect URI:', e);
+        }
+      }
+      // If we reach here, fall back to returning the raw data so the developer can inspect it
+      return res.json(data);
+    } catch (innerErr) {
+      // if Hydra returns a 4xx, include the response body for debugging
+      if (innerErr && innerErr.response) {
+        console.error('Hydra acceptConsentRequest failed:', innerErr.response.status, innerErr.response.data);
+        return res.status(innerErr.response.status).send(JSON.stringify(innerErr.response.data));
+      }
+      throw innerErr;
+    }
   } catch (err) {
+    console.error('consent handler error:', err);
     res.status(500).send(err.toString());
   }
 });

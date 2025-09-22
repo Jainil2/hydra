@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-  "migrate": "npx knex migrate:latest --knexfile ./knexfile.js",
+    "migrate": "npx knex migrate:latest --knexfile ./knexfile.js",
     "start": "node index.js",
     "tunnel": "ory tunnel --project f2c00e92-00dd-4270-bc07-380b467ad14a --port 4000 --dev http://localhost:3000"
   },
@@ -17,16 +17,16 @@
     "@ory/cli": "^1.1.0",
     "@ory/client-fetch": "^1.22.1",
     "axios": "^1.4.0",
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.0",
-    "jwks-rsa": "^3.0.1",
-  "knex": "^2.5.1",
-    "pg": "^8.11.0",
-    "bcrypt": "^5.1.1"
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
+    "knex": "^2.5.1",
+    "pg": "^8.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

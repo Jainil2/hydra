@@ -1,26 +1,66 @@
 async function fetchJson(path, opts) {
   const res = await fetch(path, opts);
-  return res.json();
+  const txt = await res.text();
+  try {
+    const data = JSON.parse(txt);
+    if (!res.ok) throw { status: res.status, data };
+    return data;
+  } catch (err) {
+    if (!res.ok) throw { status: res.status, data: txt };
+    try { return JSON.parse(txt); } catch (_){ return txt; }
+  }
+}
+
+// generate a sufficiently long random string for state and nonce
+function randomString(len = 24) {
+  return Array.from(crypto.getRandomValues(new Uint8Array(len)))
+    .map(n => (n % 36).toString(36))
+    .join('');
 }
 
 document.getElementById('start_auth').addEventListener('click', () => {
   const client = encodeURIComponent(document.getElementById('client_id').value);
   const redirect = encodeURIComponent(document.getElementById('redirect_uri').value);
   const scope = encodeURIComponent(document.getElementById('scope').value);
-  const url = `${window.location.origin.replace(':3000', ':4444')}/oauth2/auth?response_type=code&scope=${scope}&client_id=${client}&redirect_uri=${redirect}&state=demo&nonce=demo`;
+  const state = randomString(24);
+  const nonce = randomString(24);
+  const url = `${window.location.origin.replace(':3000', ':4444')}/oauth2/auth?response_type=code&scope=${scope}&client_id=${client}&redirect_uri=${redirect}&state=${encodeURIComponent(state)}&nonce=${encodeURIComponent(nonce)}`;
   window.open(url, '_blank');
 });
 
 document.getElementById('generate_pkce').addEventListener('click', async () => {
-  const r = await fetchJson('/demo/pkce');
-  const client = encodeURIComponent(document.getElementById('client_id').value);
-  const redirect = encodeURIComponent(document.getElementById('redirect_uri').value);
-  const scope = encodeURIComponent(document.getElementById('scope').value);
-  const url = `${window.location.origin.replace(':3000', ':4444')}/oauth2/auth?response_type=code&scope=${scope}&client_id=${client}&redirect_uri=${redirect}&state=demo&nonce=demo&code_challenge=${r.challenge}&code_challenge_method=S256`;
+  try {
+    const r = await fetchJson('/demo/pkce');
+  // prefer PKCE-specific inputs if present, otherwise fall back to general fields
+  const clientVal = document.getElementById('pkce_client_id') && document.getElementById('pkce_client_id').value
+    ? document.getElementById('pkce_client_id').value
+    : document.getElementById('client_id').value;
+  const client = encodeURIComponent(clientVal);
+  const redirectVal = document.getElementById('pkce_redirect_uri') && document.getElementById('pkce_redirect_uri').value
+    ? document.getElementById('pkce_redirect_uri').value
+    : document.getElementById('redirect_uri').value;
+  const redirect = encodeURIComponent(redirectVal);
+  const scope = encodeURIComponent(document.getElementById('pkce_scope') ? document.getElementById('pkce_scope').value : document.getElementById('scope').value);
+  const state = randomString(24);
+  const nonce = randomString(24);
+  const url = `${window.location.origin.replace(':3000', ':4444')}/oauth2/auth?response_type=code&scope=${scope}&client_id=${client}&redirect_uri=${redirect}&state=${encodeURIComponent(state)}&nonce=${encodeURIComponent(nonce)}&code_challenge=${r.challenge}&code_challenge_method=S256`;
   document.getElementById('pkce_info').innerText = JSON.stringify(r, null, 2);
   window.open(url, '_blank');
-  // store verifier locally so user can exchange later
+  // store verifier and client info locally so user can exchange later
   localStorage.setItem('pkce_verifier', r.verifier);
+  localStorage.setItem('pkce_client_id', clientVal);
+  // prefer pkce_client_secret input if present
+  const pkceSecretVal = (document.getElementById('pkce_client_secret') && document.getElementById('pkce_client_secret').value)
+    ? document.getElementById('pkce_client_secret').value
+    : (document.getElementById('client_secret') ? document.getElementById('client_secret').value : '');
+  localStorage.setItem('pkce_client_secret', pkceSecretVal || '');
+  localStorage.setItem('pkce_redirect_uri', redirectVal);
+  document.getElementById('pkce_info').innerText = JSON.stringify(r, null, 2) + "\n\nPKCE verifier stored in localStorage. Use 'Exchange PKCE' button and paste the code from the callback. Click 'Copy Verifier' to copy verifier to clipboard if needed.";
+  } catch (err) {
+    console.error('PKCE generation failed', err);
+    document.getElementById('pkce_info').innerText = (err && err.data) ? JSON.stringify(err.data, null, 2) : String(err);
+    showToast('PKCE generation failed');
+  }
 });
 
 // add a button to exchange code with stored verifier
@@ -30,10 +70,20 @@ exchangeBtn.addEventListener('click', async () => {
   const code = prompt('Paste authorization code (from callback)');
   const verifier = localStorage.getItem('pkce_verifier');
   if (!verifier) return showToast('No verifier found. Generate PKCE first.');
-  const client_id = document.getElementById('client_id').value;
-  const redirect_uri = document.getElementById('redirect_uri').value;
-  const res = await fetchJson('/demo/exchange-pkce', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, redirect_uri, client_id, code_verifier: verifier }) });
-  document.getElementById('pkce_info').innerText = JSON.stringify(res, null, 2);
+  // prefer stored client_id/redirect_uri saved when PKCE was generated
+  const client_id = localStorage.getItem('pkce_client_id') || document.getElementById('client_id').value;
+  const redirect_uri = localStorage.getItem('pkce_redirect_uri') || document.getElementById('redirect_uri').value;
+  const client_secret = localStorage.getItem('pkce_client_secret') || document.getElementById('client_secret').value || '';
+  try {
+    const body = { code, redirect_uri, client_id, code_verifier: verifier };
+    if (client_secret) body.client_secret = client_secret;
+    const res = await fetchJson('/demo/exchange-pkce', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    document.getElementById('pkce_info').innerText = JSON.stringify(res, null, 2);
+  } catch (err) {
+    console.error('PKCE exchange failed', err);
+    document.getElementById('pkce_info').innerText = (err && err.data) ? JSON.stringify(err.data, null, 2) : String(err);
+    showToast('PKCE exchange failed');
+  }
 });
 document.querySelector('section:nth-of-type(2)').appendChild(exchangeBtn);
 

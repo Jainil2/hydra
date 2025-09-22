@@ -5,15 +5,74 @@
   <%- include('partials/navbar') %>
     <h1>Result</h1>
     <button id="copy_json" class="btn">Copy JSON</button>
+  <button id="copy_code" class="btn">Copy Code</button>
     <pre id="result_pre"><%= JSON.stringify(data, null, 2) %></pre>
     <script src="/ui.js"></script>
     <script src="/navbar.js"></script>
+    <div style="margin-top:1rem">
+      <button id="exchange_code" class="btn primary">Exchange Code for Tokens</button>
+      <button id="open_dashboard" class="btn">Go To Dashboard</button>
+    </div>
     <script>
       document.getElementById('copy_json').addEventListener('click', ()=>{
         const t = document.getElementById('result_pre').innerText;
         copyToClipboard(t);
         showToast('Copied result');
       });
+
+      document.getElementById('copy_code').addEventListener('click', ()=>{
+        const r = parseResult();
+        const code = r.code || r.authorization_code;
+        if (!code) return showToast('No code found to copy');
+        copyToClipboard(code);
+        showToast('Authorization code copied');
+      });
+
+      function parseResult() {
+        try {
+          return JSON.parse(document.getElementById('result_pre').innerText);
+        } catch (e) {
+          // fallback to parsing URL query
+          const params = new URLSearchParams(window.location.search);
+          return Object.fromEntries(params.entries());
+        }
+      }
+
+      async function exchangeCode(body) {
+        try {
+          const res = await fetch('/oauth/exchange', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) {
+            const text = await res.text();
+            showToast('Exchange failed');
+            document.getElementById('result_pre').innerText = text;
+            return;
+          }
+          // on success the server redirects to /dashboard; follow there
+          window.location = '/dashboard';
+        } catch (err) {
+          showToast('Exchange error');
+          document.getElementById('result_pre').innerText = err.toString();
+        }
+      }
+
+      document.getElementById('exchange_code').addEventListener('click', ()=>{
+        const r = parseResult();
+        const code = r.code || r.authorization_code;
+        if (!code) return showToast('No authorization code found');
+        // default redirect uri is current origin + /result
+        const redirect_uri = r.redirect_uri || (location.origin + '/result');
+        // allow client_id/client_secret in the returned JSON (or fallback to demo defaults)
+        const client_id = r.client_id || 'demo-client';
+        const client_secret = r.client_secret || 'secret';
+        const body = { grant_type: 'authorization_code', code, redirect_uri, client_id, client_secret };
+        exchangeCode(body);
+      });
+
+      document.getElementById('open_dashboard').addEventListener('click', ()=> window.location = '/dashboard');
     </script>
   </body>
 </html>

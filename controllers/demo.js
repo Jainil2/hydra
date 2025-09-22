@@ -83,8 +83,20 @@ router.post('/exchange-pkce', async (req, res) => {
   try {
     const { code, redirect_uri, client_id, code_verifier } = req.body;
     const body = { grant_type: 'authorization_code', code, redirect_uri, client_id, code_verifier };
-    const { data } = await hydra.token(body);
-    res.json(data);
+    try {
+      // Log the outgoing token request body for debugging, mask client_secret
+      const loggedBody = Object.assign({}, body);
+      if (loggedBody.client_secret) loggedBody.client_secret = '[REDACTED:' + String(loggedBody.client_secret).length + ' chars]';
+      console.log('demo.exchange-pkce -> token request body:', loggedBody);
+      const { data } = await hydra.token(body);
+      return res.json(data);
+    } catch (err) {
+      if (err && err.response) {
+        console.error('Hydra token exchange failed:', err.response.status, err.response.data);
+        return res.status(err.response.status).json(err.response.data);
+      }
+      throw err;
+    }
   } catch (err) {
     res.status(500).send(err.toString());
   }

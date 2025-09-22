@@ -13,6 +13,7 @@
         <h2>Authorize (Auth Code)</h2>
         <div class="row">
           <label>Client ID: <input id="client_id" value="demo-client" /></label>
+          <label>Client Secret (optional): <input id="client_secret" placeholder="leave blank for public clients" /></label>
           <label>Redirect URI: <input id="redirect_uri" value="http://localhost:3000/result" /></label>
           <label>Scope: <input id="scope" value="openid offline" /></label>
         </div>
@@ -24,6 +25,11 @@
 
       <section>
         <h2>PKCE</h2>
+        <div class="row">
+          <label>Client ID (PKCE): <input id="pkce_client_id" value="demo-client" /></label>
+          <label>Client Secret (PKCE, optional): <input id="pkce_client_secret" placeholder="leave blank for public clients" /></label>
+          <label>Redirect URI (PKCE): <input id="pkce_redirect_uri" value="http://localhost:3000/result" /></label>
+        </div>
         <div class="row">
           <button id="generate_pkce" class="btn primary">Generate PKCE & Open</button>
           <button id="pkce_copy" class="btn">Copy Verifier</button>

@@ -11,12 +11,21 @@ router.get('/callback', async (req, res) => {
 router.post('/exchange', async (req, res) => {
   try {
     const body = req.body; // expects grant_type=authorization_code & code & redirect_uri & client_id & client_secret (& code_verifier optional)
-    const { data } = await hydra.token(body);
-    // set short session cookie with access token (demo only)
-    if (data.access_token) res.cookie('access_token', data.access_token, { httpOnly: true });
-    if (data.id_token) res.cookie('id_token', data.id_token, { httpOnly: true });
-    return res.redirect('/dashboard');
+    try {
+      const { data } = await hydra.token(body);
+      // set short session cookie with access token (demo only)
+      if (data.access_token) res.cookie('access_token', data.access_token, { httpOnly: true });
+      if (data.id_token) res.cookie('id_token', data.id_token, { httpOnly: true });
+      return res.redirect('/dashboard');
+    } catch (err) {
+      if (err && err.response) {
+        console.error('Token exchange failed:', err.response.status, err.response.data);
+        return res.status(err.response.status).send(JSON.stringify(err.response.data));
+      }
+      throw err;
+    }
   } catch (err) {
+    console.error('oauth exchange handler error:', err);
     res.status(500).send(err.toString());
   }
 });

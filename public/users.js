@@ -13,6 +13,7 @@ document.getElementById('create_user').addEventListener('submit', async (e)=>{
   try {
     const res = await fetch('/auth/seed-user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const j = await res.json();
+    if (!res.ok) { showToast('Create failed: ' + (j.error || res.status)); return; }
     showToast('User created');
     listUsers();
   } catch (err) { showToast('Create failed'); }

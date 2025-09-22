@@ -18,7 +18,15 @@
       const pub = "<%= env.HYDRA_PUBLIC_URL || 'http://localhost:4444' %>";
       const client = encodeURIComponent('<your-client-id>');
       const redirect = encodeURIComponent('http://localhost:3000/result');
-      document.getElementById('example').innerText = pub + '/oauth2/auth?response_type=code&scope=openid%20offline&client_id=' + client + '&redirect_uri=' + redirect + '&state=abc&nonce=nonce123';
+      // generate a sufficiently long random string for state and nonce (minimum 8 chars required by Hydra)
+      function randomString(len = 12) {
+        return Array.from(crypto.getRandomValues(new Uint8Array(len)))
+          .map(n => (n % 36).toString(36))
+          .join('');
+      }
+      const state = randomString(12);
+      const nonce = randomString(12);
+      document.getElementById('example').innerText = pub + '/oauth2/auth?response_type=code&scope=openid%20offline&client_id=' + client + '&redirect_uri=' + redirect + '&state=' + encodeURIComponent(state) + '&nonce=' + encodeURIComponent(nonce);
     </script>
     <p><a href="/flows">Open Flow Runner (demo UI)</a></p>
   </body>

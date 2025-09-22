@@ -21,7 +21,23 @@ module.exports = {
   getClients: () => admin.get('/clients'),
 
   introspectToken: (data) => pub.post('/oauth2/introspect', qs(data), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }),
-  token: (data) => pub.post('/oauth2/token', qs(data), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }),
+  token: (data) => {
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const opts = { headers };
+    // If client_secret is provided, use HTTP Basic auth as many OAuth servers require
+    if (data && data.client_id && data.client_secret) {
+      const token = Buffer.from(`${data.client_id}:${data.client_secret}`).toString('base64');
+      opts.headers.Authorization = `Basic ${token}`;
+      // remove client_secret from body when using basic auth
+      const body = Object.assign({}, data);
+      const masked = Object.assign({}, body);
+      if (masked.client_secret) masked.client_secret = '[REDACTED]';
+      delete body.client_secret;
+      console.log('hydra.service.token using Basic auth. body:', masked);
+      return pub.post('/oauth2/token', qs(body), opts);
+    }
+    return pub.post('/oauth2/token', qs(data), opts);
+  },
   userinfo: (headers) => pub.get('/oauth2/userinfo', { headers }),
   wellKnown: () => pub.get('/.well-known/openid-configuration'),
   jwks: () => pub.get('/.well-known/jwks.json'),
