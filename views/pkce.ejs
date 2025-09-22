@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PKCE Viewer</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/flows.css" />
+  </head>
+  <body>
+    <%- include('partials/header', { user: user, env: env }) %>
+    <div class="container">
+      <section>
+        <h2>Step 1 — Generate PKCE</h2>
+        <div class="row">
+          <button id="gen_pkce" class="btn primary">Generate Verifier & Challenge</button>
+        </div>
+        <pre id="pkce_out" class="output"></pre>
+      </section>
+
+      <section>
+        <h2>Step 2 — Build Authorize URL</h2>
+        <div class="row">
+          <label>Client ID: <input id="v_client_id" value="demo-client"/></label>
+          <label>Redirect URI: <input id="v_redirect_uri" value="http://localhost:3000/result"/></label>
+          <label>Scope: <input id="v_scope" value="openid offline"/></label>
+          <label>State: <input id="v_state"/></label>
+          <label>Nonce: <input id="v_nonce"/></label>
+        </div>
+        <div class="row">
+          <button id="open_auth" class="btn primary">Open Authorize</button>
+          <button id="copy_auth" class="btn">Copy Authorize URL</button>
+        </div>
+        <pre id="auth_url_out" class="output"></pre>
+      </section>
+
+      <section>
+        <h2>Step 3 — Exchange Code</h2>
+        <div class="row">
+          <label>Authorization Code: <input id="v_code" class="wide"/></label>
+          <label>Client Secret (if confidential): <input id="v_client_secret" placeholder="leave blank for public clients"/></label>
+        </div>
+        <div class="row">
+          <button id="exchange" class="btn primary">Exchange (send code_verifier)</button>
+          <button id="copy_curl" class="btn">Copy cURL</button>
+        </div>
+        <pre id="exchange_out" class="output"></pre>
+      </section>
+
+      <section>
+        <h2>Step 4 — Decode/Verify</h2>
+        <div class="row">
+          <label>Token: <input id="v_token" class="wide"/></label>
+        </div>
+        <div class="row">
+          <button id="v_decode" class="btn">Decode</button>
+          <button id="v_verify" class="btn">Verify</button>
+        </div>
+        <pre id="verify_out" class="output"></pre>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" style="display:none"></div>
+    <script src="/ui.js"></script>
+    <script>
+      function rs(len=24){return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(n=> (n%36).toString(36)).join('')}
+      function b64url(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+      async function sha256ToB64url(text){
+        const enc = new TextEncoder().encode(text);
+        const digest = await crypto.subtle.digest('SHA-256', enc);
+        return b64url(new Uint8Array(digest));
+      }
+      function genVerifier(){
+        const arr = new Uint8Array(64); // 64 bytes -> >86 chars base64url
+        crypto.getRandomValues(arr);
+        return b64url(arr);
+      }
+      let verifier = '';
+      let challenge = '';
+      document.getElementById('gen_pkce').addEventListener('click', async () => {
+        verifier = genVerifier();
+        challenge = await sha256ToB64url(verifier);
+        localStorage.setItem('pkce_verifier', verifier);
+        document.getElementById('pkce_out').innerText = JSON.stringify({ verifier, challenge }, null, 2);
+        showToast('PKCE generated in browser');
+        const st = document.getElementById('v_state');
+        const nn = document.getElementById('v_nonce');
+        if (st && !st.value) st.value = rs(); if (nn && !nn.value) nn.value = rs();
+      });
+
+      function buildAuthorize(){
+        const client = document.getElementById('v_client_id').value;
+        const redirect_uri = document.getElementById('v_redirect_uri').value;
+        const scope = document.getElementById('v_scope').value;
+        const state = document.getElementById('v_state').value || rs();
+        const nonce = document.getElementById('v_nonce').value || rs();
+        const base = window.location.origin.replace(':3000', ':4444');
+        const url = `${base}/oauth2/auth?response_type=code&client_id=${encodeURIComponent(client)}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(state)}&nonce=${encodeURIComponent(nonce)}&code_challenge=${challenge}&code_challenge_method=S256`;
+        return url;
+      }
+
+      document.getElementById('open_auth').addEventListener('click', ()=>{
+        const url = buildAuthorize();
+        document.getElementById('auth_url_out').innerText = url;
+        window.open(url, '_blank');
+      });
+      document.getElementById('copy_auth').addEventListener('click', ()=>{
+        const url = buildAuthorize();
+        navigator.clipboard.writeText(url).then(()=> showToast('Authorize URL copied'));
+        document.getElementById('auth_url_out').innerText = url;
+      });
+
+      document.getElementById('exchange').addEventListener('click', async ()=>{
+        const code = document.getElementById('v_code').value;
+        const client_id = document.getElementById('v_client_id').value;
+        const client_secret = document.getElementById('v_client_secret').value;
+        const redirect_uri = document.getElementById('v_redirect_uri').value;
+        const body = { grant_type: 'authorization_code', code, redirect_uri, client_id, code_verifier: verifier };
+        if (client_secret) body.client_secret = client_secret;
+        try {
+          const r = await fetch('/demo/exchange-pkce', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          const t = await r.text();
+          document.getElementById('exchange_out').innerText = t;
+          try {
+            const j = JSON.parse(t);
+            const token = j.id_token || j.access_token || '';
+            if (token) document.getElementById('v_token').value = token;
+          } catch {}
+        } catch (e) {
+          document.getElementById('exchange_out').innerText = String(e);
+        }
+      });
+
+      document.getElementById('copy_curl').addEventListener('click', ()=>{
+        const code = document.getElementById('v_code').value;
+        const client_id = document.getElementById('v_client_id').value;
+        const client_secret = document.getElementById('v_client_secret').value;
+        const redirect_uri = document.getElementById('v_redirect_uri').value;
+        const tokenUrl = (window.location.origin.replace(':3000', ':4444')) + '/oauth2/token';
+        let curl;
+        if (client_secret) {
+          curl = `curl -X POST ${tokenUrl} \\\n+  -u "${client_id}:${client_secret}" \\\n+  -H 'Content-Type: application/x-www-form-urlencoded' \\\n+  -d 'grant_type=authorization_code' \\\n+  -d 'code=${encodeURIComponent(code)}' \\\n+  -d 'redirect_uri=${encodeURIComponent(redirect_uri)}' \\\n+  -d 'code_verifier=${verifier}'`;
+        } else {
+          curl = `curl -X POST ${tokenUrl} \\\n+  -H 'Content-Type: application/x-www-form-urlencoded' \\\n+  -d 'grant_type=authorization_code' \\\n+  -d 'code=${encodeURIComponent(code)}' \\\n+  -d 'redirect_uri=${encodeURIComponent(redirect_uri)}' \\\n+  -d 'client_id=${client_id}' \\\n+  -d 'code_verifier=${verifier}'`;
+        }
+        navigator.clipboard.writeText(curl).then(()=> showToast('cURL copied to clipboard'));
+      });
+
+      document.getElementById('v_decode').addEventListener('click', async ()=>{
+        const token = document.getElementById('v_token').value;
+        const r = await fetch('/demo/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+        document.getElementById('verify_out').innerText = await r.text();
+      });
+      document.getElementById('v_verify').addEventListener('click', async ()=>{
+        const token = document.getElementById('v_token').value;
+        const r = await fetch('/demo/verify/full', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+        document.getElementById('verify_out').innerText = await r.text();
+      });
+    </script>
+  </body>
+  </html>

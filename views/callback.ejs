@@ -8,10 +8,10 @@
     <form method="post" action="/oauth/exchange">
       <input type="hidden" name="grant_type" value="authorization_code" />
       <label>Code: <input name="code" value="<%= code %>" /></label>
-      <label>Redirect URI: <input name="redirect_uri" value="http://localhost:3000/callback" /></label>
+  <label>Redirect URI: <input name="redirect_uri" id="redirect_uri" value="http://localhost:3000/callback" /></label>
       <label>Client ID: <input name="client_id" value="demo-client" /></label>
       <label>Client Secret: <input name="client_secret" value="secret" /></label>
-      <label>Code Verifier: <input name="code_verifier" /></label>
+      <label>Code Verifier: <input name="code_verifier" id="code_verifier" placeholder="Paste if PKCE was used"/></label>
       <button type="submit" class="btn primary">Exchange Code</button>
     </form>
     <body>
@@ -33,5 +33,22 @@
           copyToClipboard(document.getElementById('code').innerText);
           showToast('Code copied');
         });
+        // Autofill code_verifier from localStorage if present (from PKCE generator on flows page)
+        try {
+          const v = localStorage.getItem('pkce_verifier');
+          if (v && v.length >= 43) {
+            const input = document.getElementById('code_verifier');
+            if (input && !input.value) input.value = v;
+          }
+          const ru = localStorage.getItem('pkce_redirect_uri');
+          if (ru) {
+            const rInput = document.getElementById('redirect_uri');
+            if (rInput && !rInput.value) rInput.value = ru;
+            // If user came back to /callback but auth used /result, warn to exchange on the result page or switch redirect_uri accordingly
+            if (rInput && rInput.value !== ru) {
+              console.warn('Redirect URI mismatch: form has', rInput.value, 'but PKCE used', ru);
+            }
+          }
+        } catch {}
       </script>
     </body>

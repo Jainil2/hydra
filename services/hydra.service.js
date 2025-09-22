@@ -19,11 +19,24 @@ module.exports = {
 
   createClient: (body) => admin.post('/clients', body),
   getClients: () => admin.get('/clients'),
+  getClient: (id) => admin.get(`/clients/${encodeURIComponent(id)}`),
 
   introspectToken: (data) => pub.post('/oauth2/introspect', qs(data), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }),
   token: (data) => {
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     const opts = { headers };
+    // Log PKCE-related fields to help diagnose missing inputs
+    try {
+      const dbg = {
+        grant_type: data && data.grant_type,
+        has_code: Boolean(data && data.code),
+        redirect_uri: data && data.redirect_uri,
+        client_id: data && data.client_id,
+        code_verifier_len: data && data.code_verifier ? String(data.code_verifier).length : 0,
+        uses_basic_auth: Boolean(data && data.client_id && data.client_secret),
+      };
+      console.log('hydra.service.token debug:', dbg);
+    } catch (_) {}
     // If client_secret is provided, use HTTP Basic auth as many OAuth servers require
     if (data && data.client_id && data.client_secret) {
       const token = Buffer.from(`${data.client_id}:${data.client_secret}`).toString('base64');

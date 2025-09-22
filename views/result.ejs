@@ -11,6 +11,7 @@
     <script src="/navbar.js"></script>
     <div style="margin-top:1rem">
       <button id="exchange_code" class="btn primary">Exchange Code for Tokens</button>
+      <button id="exchange_pkce_code" class="btn">Exchange with PKCE Verifier</button>
       <button id="open_dashboard" class="btn">Go To Dashboard</button>
     </div>
     <script>
@@ -69,6 +70,24 @@
         const client_id = r.client_id || 'demo-client';
         const client_secret = r.client_secret || 'secret';
         const body = { grant_type: 'authorization_code', code, redirect_uri, client_id, client_secret };
+        exchangeCode(body);
+      });
+
+      // PKCE helper: use stored verifier and saved client details from flows page
+      document.getElementById('exchange_pkce_code').addEventListener('click', ()=>{
+        const r = parseResult();
+        const code = r.code || r.authorization_code;
+        if (!code) return showToast('No authorization code found');
+        const redirect_uri = r.redirect_uri || (location.origin + '/result');
+        const client_id = localStorage.getItem('pkce_client_id') || r.client_id || 'demo-client';
+        const client_secret = localStorage.getItem('pkce_client_secret') || r.client_secret || '';
+        const verifier = localStorage.getItem('pkce_verifier');
+        if (!verifier || verifier.length < 43) {
+          showToast('Missing/short PKCE verifier. Generate again on Flows page.');
+          return;
+        }
+        const body = { grant_type: 'authorization_code', code, redirect_uri, client_id, code_verifier: verifier };
+        if (client_secret) body.client_secret = client_secret;
         exchangeCode(body);
       });
 

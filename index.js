@@ -36,6 +36,7 @@ app.get('/session', (req, res) => {
 
 app.get('/', (req, res) => res.render('index', { env: process.env, user: req.user }));
 app.get('/flows', (req, res) => res.render('flows', { env: process.env, user: req.user }));
+app.get('/pkce', (req, res) => res.render('pkce', { env: process.env, user: req.user }));
 app.get('/users/manage', (req, res) => res.render('users', { env: process.env, user: req.user }));
 app.use('/auth', authRoutes);
 app.use('/demo', demoRoutes);
