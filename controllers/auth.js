@@ -8,18 +8,18 @@ router.get('/login', async (req, res) => {
   if (!challenge) return res.status(400).send('login_challenge missing');
   try {
     const { data } = await hydra.getLoginRequest(challenge);
-    res.render('login', { challenge, data });
+    res.render('login', { challenge, data, env: process.env, user: req.user });
   } catch (err) {
     res.status(500).send(err.toString());
   }
 });
 
 router.post('/login', async (req, res) => {
-  const { challenge, username } = req.body;
+  const { challenge, username, password } = req.body;
   try {
-    const valid = await userService.verify(username || 'demo-user', req.body.password || 'password');
+    const valid = await userService.verify(username, password);
     if (!valid) return res.status(401).send('invalid credentials');
-    const body = { subject: username || 'demo-user', remember: false };
+    const body = { subject: username, remember: false };
     const { data } = await hydra.acceptLoginRequest(challenge, body);
     return res.redirect(data.redirect_to);
   } catch (err) {
@@ -30,7 +30,10 @@ router.post('/login', async (req, res) => {
 router.post('/seed-user', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const id = await userService.create(username || 'demo-user', password || 'password');
+    if (!username || !password) {
+      return res.status(400).json({ error: 'username and password are required' });
+    }
+    const id = await userService.create(username, password);
     res.json({ id });
   } catch (err) {
     console.error('seed-user error:', err);
@@ -56,7 +59,7 @@ router.get('/consent', async (req, res) => {
   if (!challenge) return res.status(400).send('consent_challenge missing');
   try {
     const { data } = await hydra.getConsentRequest(challenge);
-    res.render('consent', { challenge, data });
+    res.render('consent', { challenge, data, env: process.env, user: req.user });
   } catch (err) {
     res.status(500).send(err.toString());
   }

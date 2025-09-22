@@ -11,12 +11,14 @@ module.exports = function attachUser(options = {}) {
   return async function (req, res, next) {
     try {
       const token = getTokenFromReq(req);
+      console.log('[Auth Middleware] Token from request:', token ? `found ${token.substring(0, 15)}...` : 'not found');
       if (!token) return next();
       const decoded = await verifyIdToken(token, { audience: options.audience });
+      console.log('[Auth Middleware] Token verified successfully. Decoded claims:', decoded);
       req.user = decoded;
       return next();
     } catch (err) {
-      console.warn('token verify failed:', err && err.message ? err.message : err);
+      console.error('[Auth Middleware] Token verification failed:', err);
       return next();
     }
   };

@@ -5,7 +5,7 @@
     <title>Hydra Playground</title>
   </head>
   <body>
-  <%- include('partials/navbar') %>
+  <%- include('partials/header', { user: user }) %>
     <h1>Hydra Playground</h1>
     <ul>
       <li><a href="/demo/well-known">/.well-known/openid-configuration</a></li>

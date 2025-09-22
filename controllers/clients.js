@@ -3,7 +3,7 @@ const router = express.Router();
 const hydra = require('../services/hydra.service');
 
 router.get('/manage', (req, res) => {
-  res.render('clients');
+  res.render('clients', { env: process.env, user: req.user });
 });
 
 router.post('/create', async (req, res) => {

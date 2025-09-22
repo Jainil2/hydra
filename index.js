@@ -34,9 +34,9 @@ app.get('/session', (req, res) => {
   }
 });
 
-app.get('/', (req, res) => res.render('index', { env: process.env }));
-app.get('/flows', (req, res) => res.render('flows'));
-app.get('/users/manage', (req, res) => res.render('users'));
+app.get('/', (req, res) => res.render('index', { env: process.env, user: req.user }));
+app.get('/flows', (req, res) => res.render('flows', { env: process.env, user: req.user }));
+app.get('/users/manage', (req, res) => res.render('users', { env: process.env, user: req.user }));
 app.use('/auth', authRoutes);
 app.use('/demo', demoRoutes);
 app.use('/clients', clientsRoutes);
@@ -51,7 +51,7 @@ app.use('/federation', federationRoutes);
 
 app.get('/dashboard', (req, res) => {
   const claims = req.user || null;
-  res.render('dashboard', { user: claims });
+  res.render('dashboard', { user: claims, env: process.env });
 });
 
 app.get('/result', (req, res) => {
@@ -68,6 +68,11 @@ app.get('/debug/decode', async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: err && err.message ? err.message : String(err) });
   }
+});
+
+// Dev: dump received cookies for debugging
+app.get('/debug/cookies', (req, res) => {
+  res.json({ cookies: req.cookies });
 });
 
 const port = process.env.PORT || 3000;

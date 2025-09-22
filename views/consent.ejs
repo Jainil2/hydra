@@ -2,7 +2,7 @@
 <html>
   <head><meta charset="utf-8"><title>Consent</title></head>
   <body>
-  <%- include('partials/navbar') %>
+  <%- include('partials/header', { user: user, env: env }) %>
     <h1>Consent</h1>
     <p>Consent challenge: <%= challenge %></p>
     <p>Requested scopes: <%= (data.requested_scope || []).join(', ') %></p>
@@ -13,6 +13,6 @@
       <% }) %>
       <button type="submit">Accept</button>
     </form>
-    <script src="/navbar.js"></script>
+    
   </body>
 </html>

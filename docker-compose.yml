@@ -22,8 +22,12 @@ services:
       - URLS_SELF_ISSUER=http://localhost:4444/
       - URLS_CONSENT=http://localhost:3000/auth/consent
       - URLS_LOGIN=http://localhost:3000/auth/login
+      - URLS_POST_LOGOUT_REDIRECT=${POST_LOGOUT_REDIRECT_URL}
+      - URLS_LOGOUT=http://localhost:3000/auth/logout
     depends_on:
       - postgres
+    env_file:
+      - ./.env
 
   postgres:
     image: postgres:14

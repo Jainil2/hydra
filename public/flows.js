@@ -70,6 +70,10 @@ exchangeBtn.addEventListener('click', async () => {
   const code = prompt('Paste authorization code (from callback)');
   const verifier = localStorage.getItem('pkce_verifier');
   if (!verifier) return showToast('No verifier found. Generate PKCE first.');
+  if (verifier.length < 43) {
+    document.getElementById('pkce_info').innerText = 'Stored PKCE verifier is too short (' + verifier.length + '). Click "Generate PKCE" again and use the new code from the newly opened window.';
+    return showToast('Verifier too short. Generate PKCE again.');
+  }
   // prefer stored client_id/redirect_uri saved when PKCE was generated
   const client_id = localStorage.getItem('pkce_client_id') || document.getElementById('client_id').value;
   const redirect_uri = localStorage.getItem('pkce_redirect_uri') || document.getElementById('redirect_uri').value;

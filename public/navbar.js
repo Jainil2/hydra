@@ -13,11 +13,8 @@ async function updateNavbar() {
       logoutBtn.style.display = 'none';
     }
     logoutBtn.addEventListener('click', async ()=>{
-      // clear demo cookies on client, then call server logout endpoint if exists
-      document.cookie = 'id_token=; Max-Age=0; path=/';
-      document.cookie = 'access_token=; Max-Age=0; path=/';
-      try { await fetch('/auth/logout', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) }); } catch(e){}
-      window.location.href = '/';
+      // Let the server initiate Hydra's logout (which will also clear cookies)
+      window.location.href = '/auth/logout';
     });
   } catch (e) {
     // ignore

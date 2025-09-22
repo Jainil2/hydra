@@ -2,19 +2,22 @@
 <html>
   <head><meta charset="utf-8"><title>Login</title></head>
   <body>
-  <%- include('partials/navbar') %>
-    <h1>Login</h1>
-    <p>Login challenge: <%= challenge %></p>
-    <form id="login_form" method="post" action="/auth/login">
-      <input type="hidden" name="challenge" value="<%= challenge %>" />
-      <label>Username: <input name="username" value="demo-user" /></label>
-      <label>Password: <input type="password" name="password" value="password" /></label>
-      <button type="submit" class="btn primary">Login</button>
-    </form>
-    <p>Or sign in with a third-party provider:</p>
-    <p><a class="btn" href="/federation/google?login_challenge=<%= challenge %>">Sign in with Google</a></p>
+  <%- include('partials/header', { user: user, env: env }) %>
+    <div class="card">
+      <h2>Login</h2>
+      <p>Login challenge: <%= challenge %></p>
+      <a href="http://localhost:4444/self-service/methods/oidc/auth/google?login_challenge=<%= challenge %>" class="btn google-btn" style="display: block; text-align: center; background-color: #4285F4; color: white; margin-bottom: 1rem;">
+        Sign in with Google
+      </a>
+      <form id="login_form" method="post" action="/auth/login">
+        <input type="hidden" name="challenge" value="<%= challenge %>" />
+        <label>Username: <input name="username" value="demo-user" /></label>
+        <label>Password: <input type="password" name="password" value="password" /></label>
+        <button type="submit" class="btn primary">Login</button>
+      </form>
+    </div>
     <script src="/ui.js"></script>
-    <script src="/navbar.js"></script>
+    
     <script>
       document.getElementById('login_form').addEventListener('submit', ()=> showToast('Signing in...'));
     </script>
